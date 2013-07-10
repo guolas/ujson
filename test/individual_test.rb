@@ -51,7 +51,7 @@ class UJSONTest < MiniTest::Test
     assert_equal "null", member["hola"], 'The value stored in "hola" is not correct'
   end
 
-  def getting_member_with_array_value
+  def test_getting_member_with_array_value
     file = File.new('test/fixtures/member_array.json')
     parser = Parser.new(file)
     member = parser.parse_object(file.each_char)

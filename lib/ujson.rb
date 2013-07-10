@@ -100,34 +100,46 @@ class Parser
 
   def parse_number(first_element, input_enum)
     number = first_element 
-
-    decimal = false
-    exponent = false
-    exponent_sign = false
+    
+    int = %r{\d}.match(first_element)
+    frac = false
+    exp = false
 
     loop do
       current_char = input_enum.next
-      raise StopIteration if %r{\s}.match(current_char)
-
-      if %r{\d}.match(current_char)
+      if !int
+        raise FormatError if %r{\D}.match(current_char)
         number << current_char
-      elsif ['e', 'E'].include? current_char
-        number << current_char
-        exponent = true
-      elsif current_char.eql? '.'
-        if decimal || exponent
-          raise FormatError
-        end
-        number << current_char
-        decimal = true
-      elsif ['-', '+'].include? current_char
-        if !exponent || exponent_sign
-          raise FormatError
-        end
-        number << current_char
-        exponent_sign = true
+        int = true
       else
-        raise FormatError
+        if frac
+          if %r{\d}.match(current_char)
+            number << current_char
+          elsif current_char.casecmp('e') == 0
+            number << current_char
+            current_char = input_enum.next
+            if %r{[-\+]}.match(current_char)
+              number << current_char
+              current_char = input_enum.next
+            end
+            raise FormatError if %r{\D}.match(current_char)
+            number << current_char
+            exp = true
+          else
+            raise StopIteration
+          end
+        elsif exp
+          raise StopIteration if %r{\D}.match(current_char)
+          number << current_char
+        elsif %r{\d}.match(current_char)
+          number << current_char
+        elsif current_char.eql? '.'
+          number << current_char
+          current_char = input_enum.next
+          raise FormatError if %r{\D}.match(current_char)
+          number << current_char
+          frac = true
+        end
       end
     end
     return number
@@ -137,6 +149,7 @@ class Parser
     print "\nProcessing Array\n"
     array = []
     value = parse_value(input_enum)
+    print "\nRecovered value >", value, "<\n"
     array << value
     loop do
 
