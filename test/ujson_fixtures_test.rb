@@ -6,7 +6,7 @@ require 'ujson.rb'
 
 class TestJSONFixtures < Test::Unit::TestCase
   def setup
-    fixtures = File.join(File.dirname(__FILE__), 'fixtures/*.json')
+    fixtures = File.join(File.dirname(__FILE__), 'fixtures_original/*.json')
     passed, failed = Dir[fixtures].partition { |f| f['pass'] }
     @passed = passed.inject([]) { |a, f| a << [ f, File.read(f) ] }.sort
     @failed = failed.inject([]) { |a, f| a << [ f, File.read(f) ] }.sort
@@ -15,7 +15,7 @@ class TestJSONFixtures < Test::Unit::TestCase
   def test_passing
     for name, source in @passed
       begin
-        assert Parser.new(source).parse,
+        assert UJSON.parse(source)
           "Did not pass for fixture '#{name}': #{source.inspect}"
       rescue => e
         warn "\nCaught #{e.class}(#{e}) for fixture '#{name}': #{source.inspect}\n#{e.backtrace * "\n"}"
@@ -26,9 +26,9 @@ class TestJSONFixtures < Test::Unit::TestCase
 
   def test_failing
     for name, source in @failed
-      assert_raises(FormatError, JSON::NestingError,
+      assert_raises(FormatError,
         "Did not fail for fixture '#{name}': #{source.inspect}") do
-        Parser.new(source).parse
+        UJSON.parse(source)
       end
     end
   end

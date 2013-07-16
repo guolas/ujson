@@ -17,14 +17,17 @@ class Parser
     loop do
       current_char = input_enum.next
       if %r{\S}.match(current_char)
-        if current_char.eql? '{'
-          object = parse_object(input_enum)
-        elsif current_char.eql? '['
-          object = parse_array(input_enum)
+        if object.nil?
+          if current_char.eql? '{'
+            object = parse_object(input_enum)
+          elsif current_char.eql? '['
+            object = parse_array(input_enum)
+          else
+            raise FormatError
+          end
         else
           raise FormatError
         end
-        raise StopIteration
       end
     end
     return object
@@ -113,12 +116,14 @@ class Parser
         output_options = {}
       end
     end
+
     return array
   end
 
   def parse_value(input_enum)
     value = nil
     output_options = {}
+
     loop do
       current_char = input_enum.next
       if %r{\S}.match(current_char)
@@ -137,6 +142,10 @@ class Parser
         elsif current_char.eql? 'n'
           value, output_options = parse_literal(input_enum, current_char, 'null')
         else
+          puts "[parse_value] <ERROR> current_value=" + current_char + ";"
+          puts "-----"
+          print_enum(input_enum)
+          puts "-----"
           raise FormatError unless value
         end
         raise StopIteration
@@ -266,6 +275,12 @@ class Parser
 
     output_options = {:last_char => current_char}
     return value, output_options
+  end
+  
+  def print_enum(input_enum)
+    loop do
+      print input_enum.next
+    end
   end
 end
 
