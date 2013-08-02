@@ -13,212 +13,180 @@ class Parser
 
   def parse
     input_enum = @raw_json.each_char
-    object = nil
+    json = nil
     loop do
-      current_char = input_enum.next
+      current_char = input_enum.peek
       if %r{\S}.match(current_char)
-        if object.nil?
+        if json.nil?
           if current_char.eql? '{'
-            object = parse_object(input_enum)
+            json = parse_object(input_enum)
           elsif current_char.eql? '['
-            object = parse_array(input_enum)
+            json = parse_array(input_enum)
           else
             raise FormatError
           end
         else
           raise FormatError
         end
+      else
+        input_enum.next
       end
     end
-    return object
+    return json 
   end
 
   def parse_object(input_enum)
     object = {}
     string = nil
     value = nil
-    output_options = {}
-    current_char = ''
-
-    waiting_for_string = true
-
     current_char = input_enum.next
+    raise FormatError if !current_char.eql? '{'
+    waiting_for_string = true
+    waiting_for_value = false
     loop do
+      current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if waiting_for_string
           if current_char.eql? '}'
+            input_enum.next
             raise StopIteration
           elsif current_char.eql? '"'
-            string = parse_string(input_enum, :first_char => current_char)
+            string = parse_string(input_enum)
             waiting_for_string = false
           elsif current_char.eql? ','
             raise FormatError if object.size == 0
+            input_enum.next
           else
             raise FormatError
           end
+        elsif waiting_for_value
+          value = parse_value(input_enum)
+          waiting_for_string = true
+          waiting_for_value = false
+          object[string] = value
         else
-          if current_char.eql? ':'
-            value, output_options = parse_value(input_enum)
-            waiting_for_string = true
-
-            object[string] = value
-
-          else
-            raise FormatError
-          end
+          raise FormatError unless current_char.eql? ':'
+          waiting_for_value = true
+          input_enum.next
         end
-      end
-
-      last_char = output_options.fetch(:last_char, '')
-      if last_char.eql? ''
-        current_char = input_enum.next
-        output_options = {}
       else
-        current_char = last_char
-        output_options = {}
+        input_enum.next
       end
     end
-
     return object
   end
 
   def parse_array(input_enum)
     array = []
     output_options = {}
-
-    value, outoput_options = parse_value(input_enum)
-    array << value
-
-    last_char = output_options.fetch(:last_char, '')
-    if last_char.eql? ''
-      current_char = input_enum.next
-    else
-      current_char = last_char
-    end
+    current_char = input_enum.next
+    raise FormatError if !current_char.eql? '['
 
     loop do
+      current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if current_char.eql? ']'
+          input_enum.next
           raise StopIteration
         elsif current_char.eql? ','
-          value, output_options = parse_value(input_enum)
-          array << value
+          raise FormatError if array.size == 0
+          input_enum.next
         else
-          raise FormatError
+          value = parse_value(input_enum)
+          array << value
         end
-      end
-      last_char = output_options.fetch(:last_char, '')
-      if last_char.eql? ''
-        current_char = input_enum.next
-        output_options = {}
       else
-        current_char = last_char
-        output_options = {}
+        input_enum.next
       end
     end
-
     return array
   end
 
   def parse_value(input_enum)
     value = nil
-    output_options = {}
-
+    current_char = ''
     loop do
-      current_char = input_enum.next
+      current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if current_char.eql? '"'
-          value = parse_string(input_enum, :first_char => current_char)
+          value = parse_string(input_enum)
         elsif %r{\d}.match(current_char) || current_char.eql?('-')
-          value, output_options = parse_number(input_enum, :first_char => current_char)
+          value = parse_number(input_enum)
         elsif current_char.eql? '{'
           value = parse_object(input_enum)
         elsif current_char.eql? '['
           value = parse_array(input_enum)
         elsif current_char.eql? 't'
-          value, output_options = parse_literal(input_enum, current_char, 'true')
+          value = parse_literal(input_enum, 'true')
         elsif current_char.eql? 'f'
-          value, output_options = parse_literal(input_enum, current_char, 'false')
+          value = parse_literal(input_enum, 'false')
         elsif current_char.eql? 'n'
-          value, output_options = parse_literal(input_enum, current_char, 'null')
+          value = parse_literal(input_enum, 'null')
         else
-          puts "[parse_value] <ERROR> current_value=" + current_char + ";"
-          puts "-----"
-          print_enum(input_enum)
-          puts "-----"
           raise FormatError unless value
         end
         raise StopIteration
+      else
+        raise FormatError
       end
     end
-
-    last_char = output_options.fetch(:last_char, '')
-    if last_char.eql? ''
-      output_options = {}
-    else
-      output_options = {:last_char => last_char}
-    end
-    return value, output_options
+    return value
   end
 
-  def parse_string(input_enum, options ={})
+  def parse_string(input_enum)
+    escape_chars = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't'] # missing the Unicode Chars...
     string = ''
-
     escape = false
-    quotation = false
 
-    first_char = options.fetch(:first_char, ' ')
-    if %r{\S}.match(first_char)
-      raise FormatError unless first_char.eql? '"'
-      quotation = true
-    end
-
+    raise FormatError unless input_enum.next.eql? '"'
     loop do
-      current_char = input_enum.next
-      if quotation
-        if escape
+      current_char = input_enum.peek
+      if escape
+        if escape_chars.include? current_char
           string << curent_char
           escape = false
         else
-          if current_char.eql? '\\'
-            string << current_char
-            escape = true
-          elsif current_char.eql? '"'
-            raise StopIteration
-          else
-            string << current_char
-          end
+          raise FormatError
         end
       else
-        if %r{\S}.match(current_char)
-          if current_char.eql? '"'
-            quotation = true
-          else
-            raise FormatError
-          end
+        if current_char.eql? '\\'
+          string << current_char
+          escape = true
+        elsif current_char.eql? '"'
+          input_enum.next
+          raise StopIteration
+        else
+          string << current_char
         end
       end
+      input_enum.next
     end
     return string
   end
 
-  def parse_number(input_enum, options = {})
+  def parse_number(input_enum)
     number = ''
 
-    current_char = options.fetch(:first_char, ' ')
+    current_char = ''
 
     decimal_point_already_found = false
 
     loop do
+      current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if current_char.eql? '-'
           number << current_char
-          current_char = input_enum.next
+          input_enum.next
+          current_char = input_enum.peek
         end
         if %r{\d}.match(current_char)
           number << current_char
+          input_enum.next
+          current_char = input_enum.peek
           if current_char.eql? '0'
-            current_char = input_enum.next
+            number << current_char
+            input_enum.next
+            current_char = input_enum.peek
             if current_char.eql? '.'
               decimal_point_already_found = true
               number << current_char
@@ -231,11 +199,11 @@ class Parser
           raise FormatError
         end
       end
-      current_char = input_enum.next
+      input_enum.next
     end
 
     loop do
-      current_char = input_enum.next
+      current_char = input_enum.peek
       if current_char.eql? '.'
         raise FormatError if decimal_point_already_found
         decimal_point_already_found = true
@@ -244,7 +212,8 @@ class Parser
         number << current_char
       elsif %r{[eE]}.match(current_char)
         number << current_char
-        current_char = input_enum.next
+        input_enum.next
+        current_char = input_enum.peek
         if ['+', '-'].include? current_char
           number << current_char
         elsif %r{\d}.match(current_char)
@@ -257,30 +226,28 @@ class Parser
       else
         raise FormatError
       end
+      input_enum.next
     end
-    return number, :last_char => current_char
+    return number
   end
 
-  def parse_literal(input_enum, first_element, literal)
-    value = first_element
-    current_char = ''
+  def parse_literal(input_enum, literal)
+    value = ''
     template = literal.each_char
-    template.next
     loop do
       current_char = input_enum.next
       current_template = template.next
       raise FormatError unless current_char.eql? current_template
       value << current_char
     end
-
-    output_options = {:last_char => current_char}
-    return value, output_options
+    return value
   end
-  
+
   def print_enum(input_enum)
     loop do
       print input_enum.next
     end
+    print "\n"
   end
 end
 

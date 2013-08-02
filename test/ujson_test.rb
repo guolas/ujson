@@ -1,109 +1,83 @@
-require 'minitest/autorun'
+require 'test/unit'
 require 'ujson.rb'
 
-class UJSONTest < MiniTest::Test
-
-  def test_getting_member_with_numeric_value_1
-    file = File.new('test/fixtures/member_number_1.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "-13.303e+3", member["hola"], 'The value stored in "hola" should be "-13.303e+3"'
+class UJSONTest < Test::Unit::TestCase
+  ### OBJECTS
+  def test_empty_object
+    assert UJSON.parse('{}'), 'Error processing \'{}\''
   end
-
-  def test_getting_member_with_numeric_value_2
-    file = File.new('test/fixtures/member_number_2.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "1.9e-3", member["hola"], 'The value stored in "hola" is not correct'
+  def test_object_string_value
+    object = UJSON.parse('{"string":"string_value"}')
+    assert object, 'Error processing an object with string value' 
+    assert_equal 'string_value', object["string"], 'Wrong value parsed'
   end
-
-  def test_getting_member_with_string_value
-    file = File.new('test/fixtures/member_string.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "yoyo", member["hola"], 'The value stored in "hola" is not correct'
+  def test_object_integer_value
+    object = UJSON.parse('{"integer":12345678}')
+    assert object, 'Error processing an object with integer value'
+    assert_equal '12345678', object["integer"], 'Wrong value parsed'
   end
-
-  def test_getting_member_with_true_value
-    file = File.new('test/fixtures/member_true.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "true", member["hola"], 'The value stored in "hola" is not correct'
+  def test_object_decimal_value
+    assert UJSON.parse('{"decimal":-1234.5678}'), 'Error processing an object with a decimal value'
   end
-
-  def test_getting_member_with_false_value
-    file = File.new('test/fixtures/member_false.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "false", member["hola"], 'The value stored in "hola" is not correct'
+  def test_object_e_format_value
+    assert UJSON.parse('{"e": 1e-3}'), 'Error processing an object with a value in \'e\' format'
   end
-
-  def test_getting_member_with_null_value
-    file = File.new('test/fixtures/member_null.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal "null", member["hola"], 'The value stored in "hola" is not correct'
+  def test_object_E_format_value
+    assert UJSON.parse('{"E": -2E+3}'), 'Error processing an object with a value in \'E\' format'
   end
-
-  def test_getting_member_with_object_value_1
-    file = File.new('test/fixtures/member_object_1.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal Hash, member["hola"].class, 'It should contain a Hash' 
+  def test_object_true_value
+    assert UJSON.parse('{"true": true}'), 'Error processing an object with a true value'
   end
-
-  def test_getting_member_with_object_value_2
-    file = File.new('test/fixtures/member_object_2.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have a first key with name "hola"'
-    assert_equal "adios", member.keys[1], 'It should have a second key with name "adios"'
-    assert_equal Hash, member["hola"].class, 'It should contain a Hash'
+  def test_object_false_value
+    assert UJSON.parse('{"false": false}'), 'Error processing an object with a false value'
   end
-
-  def test_getting_array_1
-    file = File.new('test/fixtures/array_1.json')
-    parser = Parser.new(file)
-    array = parser.parse
-    assert_equal Array, array.class, 'It should return an Array'
-    assert_equal 2, array.size, 'It should have two elements'
-    assert_equal Hash, array[0].class, 'First element of the array should be a Hash'
-    assert_equal Hash, array[1].class, 'Second element of the array should be a Hash'
+  def test_object_null_value
+    assert UJSON.parse('{"null": null}'), 'Error processing an object with a null value'
   end
-
-  def test_getting_array_2
-    file = File.new('test/fixtures/array_2.json')
-    parser = Parser.new(file)
-    array = parser.parse
-    assert_equal Array, array.class, 'It should return an Array'
-    assert_equal 2, array.size, 'It should have two elements'
-    assert_equal Hash, array[0].class, 'First element of the array should be a Hash'
-    assert_equal Hash, array[1].class, 'Second element of the array should be a Hash'
+  def test_object_object_value
+    assert UJSON.parse('{"object": {"hola":"yo"}}'), 'Error processing an object with an object value'
   end
-
-  def test_getting_member_with_array_value
-    file = File.new('test/fixtures/member_array.json')
-    parser = Parser.new(file)
-    member = parser.parse
-    assert_equal Hash, member.class, 'It should return a Hash'
-    assert_equal "hola", member.keys[0], 'It should have only one key with name "hola"'
-    assert_equal 5, member["hola"].size, 'The size of the array stored in "hola" should be 5' 
+  def test_object_array_value
+    assert UJSON.parse('{"array": [1, 2, "hola"]}'), 'Error processing an object with an array value'
   end
-
-
+  def test_object_several_pairs
+    assert UJSON.parse('{"first":"first", "second":2, "third":null, "fourth":[1, 2]}'), 'Error processing an object with several pairs'
+  end
+  ### ARRAYS
+  def test_empty_array
+    assert UJSON.parse('[]'), 'Error processing \'[]\''
+  end
+  def test_array_string_value
+    assert UJSON.parse('["hola"]'), 'Error processing an array with a string value'
+  end
+  def test_array_integer_value
+    assert UJSON.parse('[12345678]'), 'Error processing an array with an integer value'
+  end
+  def test_array_decimal_value
+    assert UJSON.parse('[1234.5678]'), 'Error processing an array with a decimal value'
+  end
+  def test_array_e_format_value
+    assert UJSON.parse('[1.23e45]'), 'Error processing an array with a number in \'e\' format'
+  end
+  def test_array_E_format_value
+    assert UJSON.parse('[-32.1E-76]'), 'Error processing an array with a number in \'E\' format'
+  end
+  def test_array_true_value
+    assert UJSON.parse('[true]'), 'Error processing an array with a true value'
+  end
+  def test_array_false_value
+    assert UJSON.parse('[false]'), 'Error processing an array with a false value'
+  end
+  def test_array_null_value
+    assert UJSON.parse('[null]'), 'Error processing an array with a null value'
+  end
+  def test_array_object_value
+    assert UJSON.parse('[{"hola": 1}]'), 'Error processing an array with an object value'
+  end
+  def test_array_array_value
+    assert UJSON.parse('[[1]]'), 'Error processing an array with an array value'
+  end
+  def test_array_several_values
+    assert UJSON.parse('[23e0, "two", 3, false]'), 'Error processing an array with several values'
+  end
 end
