@@ -58,6 +58,18 @@ class UJSONTest < Test::Unit::TestCase
       UJSON.parse('{"wrong number": 012}')
     end
   end
+  def test_unclosed_object
+    assert_raises(FormatError,
+    "Should fail when it finds an unclosed array") do
+      UJSON.parse('{"wrong number": 12')
+    end
+  end
+  def test_object_with_extra_comma
+    assert_raises(FormatError,
+    "Should fail when there is an unnecessary trailing comma") do
+      UJSON.parse('{"first":"first", "second":2, "third":null, "fourth":[1, 2]  , }')
+    end
+  end
   ### ARRAYS
   def test_empty_array
     assert UJSON.parse('[]'), 'Error processing \'[]\''
@@ -94,5 +106,17 @@ class UJSONTest < Test::Unit::TestCase
   end
   def test_array_several_values
     assert UJSON.parse('[23e0, "two", 3, false]'), 'Error processing an array with several values'
+  end
+  def test_unclosed_array
+    assert_raises(FormatError,
+    "Should fail when it finds an unclosed array") do
+      UJSON.parse('["Unclosed array"')
+    end
+  end
+  def test_array_with_extra_comma
+    assert_raises(FormatError,
+    "Should fail when there is an unnecessary trailing comma") do
+      UJSON.parse('["extra comma",]')
+    end
   end
 end

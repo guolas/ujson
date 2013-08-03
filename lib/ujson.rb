@@ -43,23 +43,26 @@ class Parser
     raise FormatError if !current_char.eql? '{'
     waiting_for_string = true
     waiting_for_value = false
+    waiting_for_other_pair = false
     loop do
       current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if waiting_for_string
           if current_char.eql? '}'
-            input_enum.next
+            raise FormatError if waiting_for_other_pair
             raise StopIteration
           elsif current_char.eql? '"'
             string = parse_string(input_enum)
             waiting_for_string = false
           elsif current_char.eql? ','
             raise FormatError if object.size == 0
+            waiting_for_other_pair = true
             input_enum.next
           else
             raise FormatError
           end
         elsif waiting_for_value
+          waiting_for_other_pair = false
           value = parse_value(input_enum)
           waiting_for_string = true
           waiting_for_value = false
@@ -73,6 +76,11 @@ class Parser
         input_enum.next
       end
     end
+    unless current_char.eql? '}'
+      raise FormatError
+    end
+    input_enum.next
+
     return object
   end
 
@@ -82,16 +90,20 @@ class Parser
     current_char = input_enum.next
     raise FormatError if !current_char.eql? '['
 
+    waiting_for_other_element = false
+
     loop do
       current_char = input_enum.peek
       if %r{\S}.match(current_char)
         if current_char.eql? ']'
-          input_enum.next
+          raise FormatError if waiting_for_other_element
           raise StopIteration
         elsif current_char.eql? ','
           raise FormatError if array.size == 0
+          waiting_for_other_element = true
           input_enum.next
         else
+          waiting_for_other_element = false
           value = parse_value(input_enum)
           array << value
         end
@@ -99,6 +111,12 @@ class Parser
         input_enum.next
       end
     end
+
+    unless current_char.eql? ']'
+      raise FormatError
+    end
+    input_enum.next
+
     return array
   end
 
@@ -172,6 +190,8 @@ class Parser
         elsif current_char.eql? '"'
           input_enum.next
           raise StopIteration
+        elsif %r{\p{Cc}}.match(current_char)
+          raise FormatError
         else
           string << current_char
         end
