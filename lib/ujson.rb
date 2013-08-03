@@ -191,6 +191,7 @@ class Parser
           input_enum.next
           raise StopIteration
         elsif %r{\p{Cc}}.match(current_char)
+          puts "[string] current_char=" + current_char
           raise FormatError
         else
           string << current_char
@@ -213,7 +214,7 @@ class Parser
           decimal_point_already_found = true
           number << current_char
           input_enum.next
-        elsif %r{[\s,\}\]]}.match(current_char)
+        elsif %r{[\s,\}\]]}.match(input_enum.peek)
           raise StopIteration
         else
           raise FormatError

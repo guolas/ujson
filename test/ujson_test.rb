@@ -105,7 +105,7 @@ class UJSONTest < Test::Unit::TestCase
     assert UJSON.parse('[[1]]'), 'Error processing an array with an array value'
   end
   def test_array_several_values
-    assert UJSON.parse('[23e0, "two", 3, false]'), 'Error processing an array with several values'
+    assert UJSON.parse('[23e0, "two", 3, false, 0, null]'), 'Error processing an array with several values'
   end
   def test_unclosed_array
     assert_raises(FormatError,
@@ -121,10 +121,50 @@ class UJSONTest < Test::Unit::TestCase
   end
   ### EXTRAS
   def test_pass1
-    file = File.join(File.dirname(__FILE__), 'fixtures_original/pass1.json')
+    file = File.join(File.dirname(__FILE__), 'fixtures_original/pass15.json')
     assert_raises(FormatError,
     "Should pass when processing file `pass1.json`") do
       UJSON.parse(file)
     end
+  end
+  def test_pass2
+    assert UJSON.parse('{
+        "integer": 1234567890,
+        "real": -9876.543210,
+        "e": 0.123456789e-12,
+        "E": 1.234567890E+34,
+        "":  23456789012E666,
+        "zero": 0,
+        "one": 1,
+        "space": " ",
+        "quote": "\"",
+        "backslash": "\\",
+        "controls": "\b\f\n\r\t",
+        "slash": "/ & \/",
+        "alpha": "abcdefghijklmnopqrstuvwyz",
+        "ALPHA": "ABCDEFGHIJKLMNOPQRSTUVWYZ",
+        "digit": "0123456789",
+        "special": "`1~!@#$%^&*()_+-={\':[,]}|;.</>?",
+        "hex": "\u0123\u4567\u89AB\uCDEF\uabcd\uef4A",
+        "true": true,
+        "false": false,
+        "null": null,
+        "array":[  ],
+        "object":{  },
+        "address": "50 St. James Street",
+        "url": "http://www.JSON.org/",
+        "comment": "// /* <!-- --",
+        "# -- --> */": " ",
+        " s p a c e d " :[1,2 , 3
+
+,
+
+4 , 5        ,          6           ,7        ],
+        "compact": [1,2,3,4,5,6,7],
+        "jsontext": "{\"object with 1 member\":[\"array with 1 element\"]}",
+        "quotes": "&#34; \u0022 %22 0x22 034 &#x22;",
+        "\/\\\"\uCAFE\uBABE\uAB98\uFCDE\ubcda\uef4A\b\f\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?"
+: "A key can be any string"
+    }'), "Should pass this test"
   end
 end
