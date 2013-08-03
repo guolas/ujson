@@ -143,7 +143,7 @@ class Parser
       current_char = input_enum.peek
       if escape
         if escape_chars.include? current_char
-          string << curent_char
+          string << current_char
           escape = false
         else
           raise FormatError
@@ -166,40 +166,24 @@ class Parser
 
   def parse_number(input_enum)
     number = ''
-
-    current_char = ''
-
     decimal_point_already_found = false
 
-    loop do
-      current_char = input_enum.peek
-      if %r{\S}.match(current_char)
-        if current_char.eql? '-'
+    current_char = input_enum.next
+    if %r{[\d-]}.match(current_char)
+      number << current_char
+      if current_char.eql? '0'
+        if input_enum.peek.eql? '.'
+          decimal_point_already_found = true
           number << current_char
           input_enum.next
-          current_char = input_enum.peek
-        end
-        if %r{\d}.match(current_char)
-          number << current_char
-          input_enum.next
-          current_char = input_enum.peek
-          if current_char.eql? '0'
-            number << current_char
-            input_enum.next
-            current_char = input_enum.peek
-            if current_char.eql? '.'
-              decimal_point_already_found = true
-              number << current_char
-            else
-              raise FormatError
-            end
-          end
+        elsif %r{[\s,\}\]]}.match(current_char)
           raise StopIteration
         else
           raise FormatError
         end
       end
-      input_enum.next
+    else
+      raise FormatError
     end
 
     loop do
@@ -234,9 +218,10 @@ class Parser
   def parse_literal(input_enum, literal)
     value = ''
     template = literal.each_char
+    current_char = ''
     loop do
-      current_char = input_enum.next
       current_template = template.next
+      current_char = input_enum.next
       raise FormatError unless current_char.eql? current_template
       value << current_char
     end

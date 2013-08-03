@@ -43,6 +43,18 @@ class UJSONTest < Test::Unit::TestCase
   def test_object_several_pairs
     assert UJSON.parse('{"first":"first", "second":2, "third":null, "fourth":[1, 2]}'), 'Error processing an object with several pairs'
   end
+  def test_object_extra_value_after_close
+    assert_raises(FormatError,
+      "Should fail when extra content appears after the object is closed") do
+      UJSON.parse('{"hola" : true} "extra text that should make this fail"')
+    end
+  end
+  def test_numbers_cannot_have_leading_zeros
+    assert_raises(FormatError,
+    "Should fail when a number with leading zeros is used") do
+      UJSON.parse('{"wrong number": 012}')
+    end
+  end
   ### ARRAYS
   def test_empty_array
     assert UJSON.parse('[]'), 'Error processing \'[]\''
