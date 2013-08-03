@@ -119,4 +119,12 @@ class UJSONTest < Test::Unit::TestCase
       UJSON.parse('["extra comma",]')
     end
   end
+  ### EXTRAS
+  def test_pass1
+    file = File.join(File.dirname(__FILE__), 'fixtures_original/pass1.json')
+    assert_raises(FormatError,
+    "Should pass when processing file `pass1.json`") do
+      UJSON.parse(file)
+    end
+  end
 end
