@@ -11,6 +11,9 @@ class UJSONTest < Test::Unit::TestCase
     assert object, 'Error processing an object with string value' 
     assert_equal 'string_value', object["string"], 'Wrong value parsed'
   end
+  def test_object_string_hexadecimal_value
+    assert UJSON.parse('{"hexadecimal value": "\u1234 \u5678 \u90AB\uCDEF\uabcd\uef01\u1111"}'), 'Error processing a string with hexadecimal values'
+  end
   def test_object_integer_value
     object = UJSON.parse('{"integer":12345678}')
     assert object, 'Error processing an object with integer value'

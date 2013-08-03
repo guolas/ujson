@@ -134,7 +134,7 @@ class Parser
   end
 
   def parse_string(input_enum)
-    escape_chars = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't'] # missing the Unicode Chars...
+    escape_chars = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']
     string = ''
     escape = false
 
@@ -144,6 +144,23 @@ class Parser
       if escape
         if escape_chars.include? current_char
           string << current_char
+          if current_char.eql? 'u'
+            hexadecimal_digits = ''
+            input_enum.next
+            for ii in 1..4
+              if ii == 4
+                hexadecimal_digit = input_enum.peek
+                current_char = hexadecimal_digit
+              else
+                hexadecimal_digit = input_enum.next
+              end
+              if %r{[\da-fA-F]}.match(hexadecimal_digit)
+                string << hexadecimal_digit
+              else
+                raise FormatError
+              end 
+            end
+          end
           escape = false
         else
           raise FormatError
